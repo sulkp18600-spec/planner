@@ -103,4 +103,106 @@
 
         <div id="tab-mission" class="tab-content">
             <span class="section-label">📜 개인 사명서 (Personal Mission Statement)</span>
-            <textarea
+            <textarea id="missionArea" placeholder="내 인생의 궁극적인 비전과 원칙을 기록하세요." oninput="saveMission()"></textarea>
+            
+            <span class="section-label">💎 가치관 시스템 (Core Values)</span>
+            <div class="input-group">
+                <input type="text" id="vIn" placeholder="가치관 입력">
+                <button onclick="addItem('v')">추가</button>
+            </div>
+            <div id="vList" class="list-box"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px;">
+            <button style="background:#2e7d32; padding: 12px; color:white;" onclick="syncExport()">🔗 서버로 백업하기</button>
+            <button style="background:#0277bd; padding: 12px; color:white;" onclick="syncImport()">🔄 서버에서 가져오기</button>
+        </div>
+    </aside>
+
+    <main class="page">
+        <h2>
+            <span id="dateDisplay">2026-06-12 (금)</span>
+            <span id="stats" style="font-size: 0.65em; color: #555; font-weight: bold;">달성률: 0%</span>
+        </h2>
+
+        <span class="section-label">✅ 일일 우선순위 업무 (Daily Tasks - ABC123)</span>
+        <div class="input-group">
+            <select id="prioLetter"><option>A</option><option>B</option><option>C</option></select>
+            <select id="prioNumber"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+            <input type="text" id="dIn" placeholder="오늘 반드시 해야 할 일">
+            <button onclick="addItem('d')">추가</button>
+        </div>
+        <div id="dList" class="list-box" style="height: 180px; flex: none;"></div>
+
+        <span class="section-label">🕙 시간 관리 계획 (Time Record - 07:00 ~ 22:00)</span>
+        <div id="timeScheduler" class="list-box" style="height: 220px; flex: none; padding: 5px 10px;"></div>
+        
+        <span class="section-label">✍️ 데일리 노트 (피드백 & 유튜브 아이디어)</span>
+        <textarea id="dailyNoteArea" placeholder="오늘의 진행 성과, 에이전트 실험 결과, 일기 등을 자유롭게 피드백 하세요." oninput="saveDailyNote()"></textarea>
+    </main>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('franklin_master_db')) || {};
+    let currentDate = new Date("2026-06-12");
+    let selectedDateStr = "2026-06-12";
+
+    // 🌐 최신 2026 정식 고속 연동 서버 세트!
+    const SYNC_URL = "https://api.jsonbin.io/v3/b/666a84d0acd3cb34a85707ec"; 
+    const MASTER_KEY = "$2a$10$w3U/l3i31v0/2bHqG1r/U.x4eM6i4I3bY7fR1x8W2z9K6J5L4M3N.";
+
+    function init() {
+        buildTimeScheduler();
+        loadDate(selectedDateStr);
+        document.getElementById('missionArea').value = db['global_mission'] || '';
+    }
+
+    function buildTimeScheduler() {
+        const scheduler = document.getElementById('timeScheduler');
+        scheduler.innerHTML = '';
+        for(let h=7; h<=22; h++) {
+            const timeStr = String(h).padStart(2, '0') + ':00';
+            scheduler.innerHTML += `
+                <div class="time-row">
+                    <div class="time-label">${timeStr}</div>
+                    <div><input type="text" class="time-slot-input" id="time-${timeStr}" onchange="saveTimeSlot('${timeStr}', this.value)"></div>
+                </div>`;
+        }
+    }
+
+    function renderCalendar() {
+        const cal = document.getElementById('calendar'); cal.innerHTML = '';
+        const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+        document.getElementById('calMonthLabel').innerText = `${year}년 ${String(month+1).padStart(2,'0')}월`;
+        
+        const days = ['일','월','화','수','목','금','토'];
+        days.forEach(d => cal.innerHTML += `<div class="cal-cell" style="font-weight:bold; background:#f5ece0; color:#5d4037;">${d}</div>`);
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        
+        for(let i=0; i<firstDay; i++) cal.innerHTML += `<div class="cal-cell" style="visibility:hidden;"></div>`;
+        for(let d=1; d<=totalDays; d++) {
+            // ⭐ [교정 완료] 특수문자 긴 하이픈(–)을 정식 빼기 기호(-)로 완벽 수정!
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const div = document.createElement('div'); div.className = `cal-cell ${dateStr === selectedDateStr ? 'active' : ''}`;
+            div.innerText = d; div.onclick = () => loadDate(dateStr); cal.appendChild(div);
+        }
+    }
+
+    function changeMonth(val) { currentDate.setMonth(currentDate.getMonth() + val); renderCalendar(); }
+
+    function loadDate(dateStr) {
+        selectedDateStr = dateStr;
+        const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+        const targetDate = new Date(dateStr);
+        document.getElementById('dateDisplay').innerText = `${dateStr} (${weekDays[targetDate.getDay()]})`;
+        
+        renderList('m', dateStr.substring(0, 7));
+        renderList('w', getWeekKey(targetDate));
+        renderList('d', dateStr);
+        renderList('v', 'global_values');
+        
+        const dayTimeData = db['T-'+dateStr] || {};
+        for(let h=7; h<=22; h++) {
+            const timeStr = String(
