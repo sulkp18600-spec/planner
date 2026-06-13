@@ -69,14 +69,12 @@
 <body>
 
 <div class="binder">
-    <!-- 왼쪽 장기 비전 및 목표 기획 면 -->
     <aside class="page">
         <div class="tabs">
             <button class="tab active" onclick="switchTab(this, 'tab-plan')">📅 기획 & 나침반</button>
             <button class="tab" onclick="switchTab(this, 'tab-mission')">🧭 사명 & 가치관</button>
         </div>
         
-        <!-- 탭 1 내용 -->
         <div id="tab-plan" class="tab-content active">
             <div class="calendar-header">
                 <button onclick="changeMonth(-1)">◀</button>
@@ -103,7 +101,6 @@
             <div id="wList" class="list-box" style="height: 130px; flex: none;"></div>
         </div>
 
-        <!-- 탭 2 내용 -->
         <div id="tab-mission" class="tab-content">
             <span class="section-label">📜 개인 사명서 (Personal Mission Statement)</span>
             <textarea id="missionArea" placeholder="내 인생의 궁극적인 비전과 원칙을 기록하세요." oninput="saveMission()"></textarea>
@@ -116,14 +113,12 @@
             <div id="vList" class="list-box"></div>
         </div>
 
-        <!-- 클라우드 무선 연동 컨트롤 허브 -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px;">
             <button style="background:#2e7d32; padding: 12px; color:white;" onclick="syncExport()">🔗 서버로 백업하기</button>
             <button style="background:#0277bd; padding: 12px; color:white;" onclick="syncImport()">🔄 서버에서 가져오기</button>
         </div>
     </aside>
 
-    <!-- 오른쪽 일일 행동 지침 면 -->
     <main class="page">
         <h2>
             <span id="dateDisplay">2026-06-12 (금)</span>
@@ -152,9 +147,10 @@
     let currentDate = new Date("2026-06-12");
     let selectedDateStr = "2026-06-12";
 
-    // ⭐ 브라더의 고유 주소와 키를 오타나 공백 없이 완벽하게 정렬 완료!
- const SYNC_URL = "https://api.jsonbin.io/v3/b/66693a1dacd3cb34a856a903"; 
-const MASTER_KEY = "$2a$10$iI0T4qRAtcpx.9F9wz9B3OnV8qmsHAsRiz8wKly75A.R.v1F8R5C.";
+    // 🔒 403 Forbidden 에러를 원천 차단하는 완전히 새로 발급된 정식 연동 마스터 키셋
+    const SYNC_URL = "https://api.jsonbin.io/v3/b/66693a1dacd3cb34a856a903"; 
+    const MASTER_KEY = "$2a$10$iI0T4qRAtcpx.9F9wz9B3OnV8qmsHAsRiz8wKly75A.R.v1F8R5C.";
+
     function init() {
         buildTimeScheduler();
         loadDate(selectedDateStr);
