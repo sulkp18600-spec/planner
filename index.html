@@ -131,3 +131,11 @@
             <select id="prioNumber"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
             <input type="text" id="dIn" placeholder="오늘 반드시 해야 할 일">
             <button onclick="addItem('d')">추가</button>
+        </div>
+        <div id="dList" class="list-box" style="height: 180px; flex: none;"></div>
+
+        <span class="section-label">🕙 시간 관리 계획 (Time Record - 07:00 ~ 22:00)</span>
+        <div id="timeScheduler" class="list-box" style="height: 220px; flex: none; padding: 5px 10px;"></div>
+        
+        <span class="section-label">✍️ 데일리 노트 (피드백 & 유튜브 아이디어)</span>
+        <textarea id="dailyNoteArea" placeholder="오늘의 진행 성과, 에이전트 실험 결과, 일기 등을 자유롭게 피드백 하세요." oninput="save
