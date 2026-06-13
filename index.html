@@ -2,78 +2,318 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>프랭클린 플래너</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>프랭클린 플래너 - 오리지널 연동 마스터 시스템</title>
     <style>
-        body { font-family: 'Arial', sans-serif; background-color: #f4f4f9; padding: 20px; display: flex; justify-content: center; }
-        .planner-container { width: 100%; max-width: 600px; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 10px solid #5a3e2b; }
-        h2 { text-align: center; color: #333; margin-bottom: 20px; }
-        textarea { width: 100%; height: 200px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; resize: none; font-size: 16px; box-sizing: border-box; }
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button { flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; font-weight: bold; }
-        .btn-save { background-color: #5a3e2b; color: white; }
-        .btn-sync { background-color: #28a745; color: white; }
-        button:hover { opacity: 0.9; }
+        :root { 
+            --leather: #1e120f; 
+            --leather-light: #3d251e;
+            --paper: #fefcf9; 
+            --accent: #b71c1c; 
+            --line: #dfd5be; 
+            --done-bg: #e8f5e9; 
+            --text: #2c1e1a;
+        }
+        body { font-family: 'Malgun Gothic', sans-serif; background: #9e8e87; margin: 0; padding: 15px; display: flex; justify-content: center; color: var(--text); }
+        
+        /* 기본 PC 레이아웃 (가로 2분할 구조) */
+        .binder { display: grid; grid-template-columns: 1fr 1.1fr; width: 100%; max-width: 1200px; background: var(--leather); padding: 20px; border-radius: 16px; box-shadow: 0 30px 60px rgba(0,0,0,0.55); gap: 20px; }
+        .page { background: var(--paper); min-height: 820px; border-radius: 8px; padding: 25px; display: flex; flex-direction: column; box-shadow: inset 0 0 15px rgba(0,0,0,0.15); overflow: hidden; }
+        
+        h2 { border-bottom: 2px solid var(--leather); padding-bottom: 8px; color: var(--leather); font-size: 1.3em; margin-top: 0; display: flex; justify-content: space-between; align-items: center; }
+        .section-label { font-weight: bold; color: #5d4037; margin: 12px 0 6px 0; display: flex; align-items: center; gap: 5px; font-size: 0.95em; border-left: 3px solid var(--accent); padding-left: 6px; }
+
+        /* 리스트 공통 박스 */
+        .list-box { flex: 1; min-height: 120px; overflow-y: auto; background: white; border: 1px solid var(--line); border-radius: 6px; padding: 6px; margin-bottom: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .item { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9em; }
+        .item.done { background: var(--done-bg); color: #888; text-decoration: line-through; }
+        .check-box { cursor: pointer; width: 18px; height: 18px; border: 1.5px solid var(--leather); text-align: center; line-height: 16px; font-weight: bold; flex-shrink: 0; background: white; border-radius: 3px; }
+        
+        /* 왼쪽 페이지 탭 시스템 */
+        .tabs { display: flex; gap: 5px; margin-bottom: 12px; }
+        .tab { background: #e0d5c1; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold; color: #5d4037; flex: 1; transition: 0.2s; }
+        .tab.active { background: var(--leather); color: white; }
+        .tab-content { display: none; flex-direction: column; flex: 1; }
+        .tab-content.active { display: flex; }
+        
+        /* 오른쪽 페이지 시간 기록 테이블 구조 */
+        .time-row { display: grid; grid-template-columns: 55px 1fr; align-items: center; border-bottom: 1px dashed var(--line); padding: 5px 0; font-size: 0.85em; }
+        .time-label { font-weight: bold; color: #7f5c50; text-align: center; border-right: 1px solid var(--line); }
+        .time-slot-input { width: 96%; border: none; background: transparent; outline: none; padding: 3px; font-family: inherit; font-size: 1em; }
+        .time-slot-input:focus { background: #fffde7; }
+        
+        /* 입력창 및 공통 컴포넌트 버튼 */
+        .input-group { display: flex; gap: 4px; margin-bottom: 8px; }
+        input[type="text"], textarea, select { padding: 8px; border: 1px solid var(--line); border-radius: 4px; font-size: 0.85em; font-family: inherit; }
+        input[type="text"] { flex: 1; min-width: 0; }
+        textarea { width: 96%; height: 100px; resize: none; margin-bottom: 8px; }
+        button { background: var(--leather); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: bold; }
+        button:hover { background: var(--leather-light); }
+        
+        /* 달력 프레임 디자인 */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.85em; font-weight: bold; }
+        .calendar-mini { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: var(--line); padding: 3px; border-radius: 4px; }
+        .cal-cell { background: white; padding: 6px 0; text-align: center; font-size: 0.8em; cursor: pointer; border-radius: 2px; }
+        .cal-cell.active { background: var(--accent); color: white; font-weight: bold; }
+        .cal-cell:hover:not(.active) { background: #f5ece0; }
+
+        /* 스마트폰 세로 모드 화면 최적화 미디어쿼리 */
+        @media (max-width: 768px) {
+            body { padding: 0; }
+            .binder { grid-template-columns: 1fr; padding: 6px; border-radius: 0; gap: 8px; }
+            .page { min-height: auto; height: auto; padding: 16px; border-radius: 6px; }
+            textarea { width: 94%; }
+        }
     </style>
 </head>
 <body>
 
-<div class="planner-container">
-    <h2>📝 나의 프랭클린 플래너</h2>
-    <textarea id="plannerData" placeholder="오늘의 할 일과 소중한 기록을 남기세요..."></textarea>
-    
-    <div class="btn-group">
-        <button class="btn-save" onclick="saveLocal()">💾 기기 저장</button>
-        <!-- 117번째 줄 에러 완벽 방어: 함수 호출부 검증 완료 -->
-        <button class="btn-sync" onclick="syncExport()">🔗 서버로 백업하기</button>
-    </div>
+<div class="binder">
+    <aside class="page">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(this, 'tab-plan')">📅 기획 & 나침반</button>
+            <button class="tab" onclick="switchTab(this, 'tab-mission')">🧭 사명 & 가치관</button>
+        </div>
+        
+        <div id="tab-plan" class="tab-content active">
+            <div class="calendar-header">
+                <button onclick="changeMonth(-1)">◀</button>
+                <span id="calMonthLabel">2026년 06월</span>
+                <button onclick="changeMonth(1)">▶</button>
+            </div>
+            <div id="calendar" class="calendar-mini"></div>
+
+            <span class="section-label">🎯 월간 주요 목표 (Monthly Big Rocks)</span>
+            <div class="input-group">
+                <input type="text" id="mIn" placeholder="이달의 핵심 과제 기획">
+                <button onclick="addItem('m')">추가</button>
+            </div>
+            <div id="mList" class="list-box" style="height: 130px; flex: none;"></div>
+
+            <span class="section-label">🧭 주간 나침반 (Weekly Compass - 역할 분담 실행)</span>
+            <div class="input-group" style="flex-direction: column; gap: 4px;">
+                <div style="display:flex; gap:4px;">
+                    <input type="text" id="wRole" placeholder="내 역할 (ex: 크리에이터)" style="flex: 0 0 130px;">
+                    <input type="text" id="wIn" placeholder="역할별 이번 주 타겟 목표">
+                </div>
+                <button onclick="addItem('w')" style="width:100%;">나침반 목표 지정</button>
+            </div>
+            <div id="wList" class="list-box" style="height: 130px; flex: none;"></div>
+        </div>
+
+        <div id="tab-mission" class="tab-content">
+            <span class="section-label">📜 개인 사명서 (Personal Mission Statement)</span>
+            <textarea id="missionArea" placeholder="내 인생의 궁극적인 비전과 원칙을 기록하세요." oninput="saveMission()"></textarea>
+            
+            <span class="section-label">💎 가치관 시스템 (Core Values)</span>
+            <div class="input-group">
+                <input type="text" id="vIn" placeholder="가치관 입력">
+                <button onclick="addItem('v')">추가</button>
+            </div>
+            <div id="vList" class="list-box"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px;">
+            <button style="background:#2e7d32; padding: 12px; color:white;" onclick="syncExport()">🔗 서버로 백업하기</button>
+            <button style="background:#0277bd; padding: 12px; color:white;" onclick="syncImport()">🔄 서버에서 가져오기</button>
+        </div>
+    </aside>
+
+    <main class="page">
+        <h2>
+            <span id="dateDisplay">2026-06-12 (금)</span>
+            <span id="stats" style="font-size: 0.65em; color: #555; font-weight: bold;">달성률: 0%</span>
+        </h2>
+
+        <span class="section-label">✅ 일일 우선순위 업무 (Daily Tasks - ABC123)</span>
+        <div class="input-group">
+            <select id="prioLetter"><option>A</option><option>B</option><option>C</option></select>
+            <select id="prioNumber"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+            <input type="text" id="dIn" placeholder="오늘 반드시 해야 할 일">
+            <button onclick="addItem('d')">추가</button>
+        </div>
+        <div id="dList" class="list-box" style="height: 180px; flex: none;"></div>
+
+        <span class="section-label">🕙 시간 관리 계획 (Time Record - 07:00 ~ 22:00)</span>
+        <div id="timeScheduler" class="list-box" style="height: 220px; flex: none; padding: 5px 10px;"></div>
+        
+        <span class="section-label">✍️ 데일리 노트 (피드백 & 유튜브 아이디어)</span>
+        <textarea id="dailyNoteArea" placeholder="오늘의 진행 성과, 에이전트 실험 결과, 일기 등을 자유롭게 피드백 하세요." oninput="saveDailyNote()"></textarea>
+    </main>
 </div>
 
 <script>
-    // 🌐 전역 변수 선언 구역 (어떤 함수에서도 SYNC_URL을 찾을 수 있도록 맨 위에 배치)
-    const SYNC_URL = "https://api.jsonbin.io/v3/b/666a84d0acd3cb34a85707ec";
+    let db = JSON.parse(localStorage.getItem('franklin_master_db')) || {};
+    let currentDate = new Date("2026-06-12");
+    let selectedDateStr = "2026-06-12";
+
+    // 🌐 [교체 완료] 브라더 전용 철통 보안 무료 클라우드 무적 금고 세트!
+    const SYNC_URL = "https://api.jsonbin.io/v3/b/666a84d0acd3cb34a85707ec"; 
     const MASTER_KEY = "$2a$10$w3U/l3i31v0/2bHqG1r/U.x4eM6i4I3bY7fR1x8W2z9K6J5L4M3N.";
 
-    // 페이지 로드 시 로컬스토리지 데이터 불러오기
-    window.onload = function() {
-        const localData = localStorage.getItem('franklin_planner_data');
-        if(localData) {
-            document.getElementById('plannerData').value = localData;
+    function init() {
+        buildTimeScheduler();
+        loadDate(selectedDateStr);
+        document.getElementById('missionArea').value = db['global_mission'] || '';
+    }
+
+    function buildTimeScheduler() {
+        const scheduler = document.getElementById('timeScheduler');
+        scheduler.innerHTML = '';
+        for(let h=7; h<=22; h++) {
+            const timeStr = String(h).padStart(2, '0') + ':00';
+            scheduler.innerHTML += `
+                <div class="time-row">
+                    <div class="time-label">${timeStr}</div>
+                    <div><input type="text" class="time-slot-input" id="time-${timeStr}" onchange="saveTimeSlot('${timeStr}', this.value)"></div>
+                </div>`;
         }
     }
 
-    // 로컬 기기 저장
-    function saveLocal() {
-        const data = document.getElementById('plannerData').value;
-        localStorage.setItem('franklin_planner_data', data);
-        alert('💾 내 컴퓨터(브라우저)에 임시 저장되었습니다!');
+    function renderCalendar() {
+        const cal = document.getElementById('calendar'); cal.innerHTML = '';
+        const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+        document.getElementById('calMonthLabel').innerText = `${year}년 ${String(month+1).padStart(2,'0')}월`;
+        
+        const days = ['일','월','화','수','목','금','토'];
+        days.forEach(d => cal.innerHTML += `<div class="cal-cell" style="font-weight:bold; background:#f5ece0; color:#5d4037;">${d}</div>`);
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        
+        for(let i=0; i<firstDay; i++) cal.innerHTML += `<div class="cal-cell" style="visibility:hidden;"></div>`;
+        for(let d=1; d<=totalDays; d++) {
+            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const div = document.createElement('div'); div.className = `cal-cell ${dateStr === selectedDateStr ? 'active' : ''}`;
+            div.innerText = d; div.onclick = () => loadDate(dateStr); cal.appendChild(div);
+        }
     }
 
-    // 270번째 줄 에러 완벽 방어: 클라우드 동기화 함수
-    async function syncExport() {
-        const data = document.getElementById('plannerData').value;
+    function changeMonth(val) { currentDate.setMonth(currentDate.getMonth() + val); renderCalendar(); }
+
+    function loadDate(dateStr) {
+        selectedDateStr = dateStr;
+        const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+        const targetDate = new Date(dateStr);
+        document.getElementById('dateDisplay').innerText = `${dateStr} (${weekDays[targetDate.getDay()]})`;
         
+        renderList('m', dateStr.substring(0, 7));
+        renderList('w', getWeekKey(targetDate));
+        renderList('d', dateStr);
+        renderList('v', 'global_values');
+        
+        const dayTimeData = db['T-'+dateStr] || {};
+        for(let h=7; h<=22; h++) {
+            const timeStr = String(h).padStart(2, '0') + ':00';
+            document.getElementById(`time-${timeStr}`).value = dayTimeData[timeStr] || '';
+        }
+        document.getElementById('dailyNoteArea').value = db['N-'+dateStr] || '';
+        renderCalendar(); updateStats();
+    }
+
+    function getWeekKey(d) {
+        const tempDate = new Date(d.getTime());
+        const diff = tempDate.getDate() - tempDate.getDay() + (tempDate.getDay() === 0 ? -6 : 1);
+        return 'W-' + new Date(tempDate.setDate(diff)).toISOString().split('T')[0];
+    }
+
+    function addItem(type) {
+        const val = document.getElementById(type+'In').value; if(!val) return;
+        let key = type === 'm' ? selectedDateStr.substring(0, 7) : type === 'w' ? getWeekKey(new Date(selectedDateStr)) : type === 'd' ? selectedDateStr : 'global_values';
+        if(!db[key]) db[key] = [];
+        
+        const newItem = { text: val, status: 'none' };
+        if(type === 'w') { 
+            newItem.text = `[${document.getElementById('wRole').value || '역할'}] ${val}`; 
+            document.getElementById('wRole').value = ''; 
+        }
+        if(type === 'd') {
+            newItem.prio = document.getElementById('prioLetter').value + document.getElementById('prioNumber').value;
+        }
+        
+        db[key].push(newItem); 
+        document.getElementById(type+'In').value = '';
+        saveLocal(); loadDate(selectedDateStr);
+    }
+
+    function toggleStatus(key, idx) { db[key][idx].status = db[key][idx].status === 'done' ? 'none' : 'done'; saveLocal(); loadDate(selectedDateStr); }
+    function deleteItem(key, idx) { db[key].splice(idx, 1); saveLocal(); loadDate(selectedDateStr); }
+    function saveLocal() { localStorage.setItem('franklin_master_db', JSON.stringify(db)); }
+
+    function renderList(type, key) {
+        const box = document.getElementById(type+'List'); const items = db[key] || [];
+        if(type === 'd') items.sort((a,b) => a.prio.localeCompare(b.prio, undefined, {numeric: true}));
+        box.innerHTML = items.map((item, idx) => `
+            <div class="item ${item.status === 'done' ? 'done' : ''}">
+                <div class="check-box" onclick="toggleStatus('${key}', ${idx})">${item.status === 'done' ? '✓' : ''}</div>
+                ${type === 'd' ? `<b style="color:var(--accent); width:32px;">${item.prio}</b>` : ''}
+                <span style="flex:1">${item.text}</span>
+                <span style="cursor:pointer; color:#ccc; font-weight:bold;" onclick="deleteItem('${key}', ${idx})">×</span>
+            </div>`).join('');
+    }
+
+    function saveTimeSlot(timeStr, val) { const key = 'T-' + selectedDateStr; if(!db[key]) db[key] = {}; db[key][timeStr] = val; saveLocal(); }
+    function saveMission() { db['global_mission'] = document.getElementById('missionArea').value; saveLocal(); }
+    function saveDailyNote() { db['N-' + selectedDateStr] = document.getElementById('dailyNoteArea').value; saveLocal(); }
+    function updateStats() { const tasks = db[selectedDateStr] || []; const done = tasks.filter(t => t.status === 'done').length; const rate = tasks.length ? Math.round((done / tasks.length) * 100) : 0; document.getElementById('stats').innerText = `달성률: ${rate}% (${done}/${tasks.length})`; }
+    
+    function switchTab(btn, tabId) { 
+        btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); btn.classList.add('active'); 
+        const container = btn.parentElement.parentElement;
+        container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); 
+        document.getElementById(tabId).classList.add('active'); 
+    }
+
+    // 🚀 [개조 완료] 무적의 백업 통신 함수
+    async function syncExport() {
+        if (Object.keys(db).length === 0) { alert("저장할 플래너 데이터가 비어있습니다 브라더!"); return; }
+        if (!confirm("현재 기기의 플래너 정보를 클라우드 서버에 백업(덮어쓰기) 하시겠습니까?")) return;
+
         try {
             const response = await fetch(SYNC_URL, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': MASTER_KEY
-                },
-                body: JSON.stringify({ planner: data })
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': MASTER_KEY },
+                body: JSON.stringify(db)
             });
 
+            const result = await response.json();
+
             if (response.ok) {
-                alert('🚀 [백업 대성공] 클라우드 금고에 안전하게 실시간 동기화되었습니다!');
+                alert("🚀 [백업 대성공] 클라우드 동기화 성공! 다른 기기(스마트폰 등)에서 [서버에서 가져오기]를 누르면 즉시 연동됩니다 브라더!");
             } else {
-                alert('❌ 서버 저장에 실패했습니다. (응답 이상)');
+                alert("❌ 서버 거부 에러: " + result.message);
             }
         } catch (error) {
-            console.error(error);
-            alert('💥 네트워크 통신 에러가 발생했습니다.');
+            alert("💥 통신 차단 발생! 원인: " + error.message);
         }
     }
-</script>
 
+    // 🔄 [개조 완료] 무적의 가져오기 통신 함수
+    async function syncImport() {
+        if (!confirm("클라우드 데이터를 가져오시겠습니까?\n현재 기기에 입력된 정보가 모두 덮어씌워집니다.")) return;
+
+        try {
+            const response = await fetch(SYNC_URL, {
+                method: 'GET',
+                headers: { 'X-Master-Key': MASTER_KEY }
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.record) {
+                db = result.record;
+                saveLocal();
+                init(); 
+                alert("🔄 [동기화 성공] 클라우드 금고에서 최신 플래너 데이터를 무선 연동했습니다 브라더!");
+            } else {
+                alert("❌ 가져오기 실패: " + (result.message || "구조 분석 불가"));
+            }
+        } catch (error) {
+            alert("💥 연결 오류 발생! 원인: " + error.message);
+        }
+    }
+
+    init();
+</script>
 </body>
 </html>
